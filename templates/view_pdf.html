@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flip Book Viewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h1>Flip Book Viewer</h1>
+
+<div class="controls">
+    <button id="prev">⬅ Prev</button>
+    <span id="page-info"></span>
+    <button id="next">Next ➡</button>
+</div>
+
+<div class="book">
+    <div class="page left">
+        <canvas id="left-canvas"></canvas>
+    </div>
+
+    <div class="spine"></div>
+    <div class="page right">
+        <canvas id="right-canvas"></canvas>
+    </div>
+</div>
+
+<script>
+    const PDF_FILE = "{{ filename }}";
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>

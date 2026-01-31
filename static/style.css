@@ -1,0 +1,95 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    text-align: center;
+    padding-top: 30px;
+}
+
+.book {
+    display: flex;
+    justify-content: center;
+    perspective: 2000px;
+    margin-top: 20px;
+}
+
+.page {
+    width: 400px;
+    height: auto;
+    background: white;
+    transform-style: preserve-3d;
+    transition: transform 0.8s ease;
+}
+
+.page.left {
+    transform-origin: right center;
+}
+
+.page.right {
+    transform-origin: left center;
+}
+
+.book.flip .page.left {
+    transform: rotateY(-180deg);
+}
+
+.book.flip .page.right {
+    transform: rotateY(0deg);
+}
+
+.spine {
+    width: 18px;
+    background: linear-gradient(
+        to right,
+        rgba(0,0,0,0.35),
+        rgba(255,255,255,0.6),
+        rgba(0,0,0,0.35)
+    );
+}
+
+.page canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+
+button {
+    margin: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+form {
+    margin-top: 20px;
+}
+
+input[type="file"] {
+    padding: 10px;
+    font-size: 16px;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+h2 {
+    color: #ff0000;
+}

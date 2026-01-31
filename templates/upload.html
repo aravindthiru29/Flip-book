@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flip Book</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <h2>Upload PDF</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="pdf" accept="application/pdf" required>
+        <br><br>
+        <button type="submit">Upload</button>
+    </form>
+</body>
+</html>
