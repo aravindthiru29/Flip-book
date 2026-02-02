@@ -1,95 +1,150 @@
 body {
-    font-family: Arial, sans-serif;
     background: #f4f4f4;
+    font-family: Arial, sans-serif;
     text-align: center;
-    padding-top: 30px;
 }
 
 .book {
-    display: flex;
-    justify-content: center;
-    perspective: 2000px;
-    margin-top: 20px;
+    position: relative;
+    width: 800px;
+    height: 560px;
+    margin: 40px auto;
+    perspective: 2200px;
+    touch-action: none;
 }
 
-.page {
+/* shared page */
+.sheet {
+    position: absolute;
     width: 400px;
-    height: auto;
+    height: 100%;
     background: white;
     transform-style: preserve-3d;
-    transition: transform 0.8s ease;
+    transition: transform 0.5s ease;
 }
 
-.page.left {
-    transform-origin: right center;
-}
-
-.page.right {
+/* RIGHT PAGE → NEXT */
+.right-sheet {
+    left: 400px;
     transform-origin: left center;
 }
 
-.book.flip .page.left {
-    transform: rotateY(-180deg);
+/* LEFT PAGE → PREVIOUS */
+.left-sheet {
+    left: 0;
+    transform-origin: right center;
 }
 
-.book.flip .page.right {
-    transform: rotateY(0deg);
-}
-
-.spine {
-    width: 18px;
-    background: linear-gradient(
-        to right,
-        rgba(0,0,0,0.35),
-        rgba(255,255,255,0.6),
-        rgba(0,0,0,0.35)
-    );
-}
-
-.page canvas {
+/* faces */
+.sheet .front,
+.sheet .back {
+    position: absolute;
     width: 100%;
-    height: auto;
+    height: 100%;
+    backface-visibility: hidden;
+    background: white;
+}
+
+.sheet .back {
+    transform: rotateY(180deg);
+}
+
+/* spine */
+.spine {
+    position: absolute;
+    left: 398px;
+    width: 4px;
+    height: 100%;
+    background: #bbb;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
     display: block;
 }
 
-
-button {
-    margin: 20px;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
+/* dragging disables animation */
+.sheet.dragging {
+    transition: none !important;
+}
+.sheet.next {
+    transform: rotateY(-180deg);
 }
 
-button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+/* ---------- EDGE CURL ILLUSION ---------- */
+
+/* front face curl */
+.sheet .front::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
-form {
-    margin-top: 20px;
+/* right page curling left (NEXT) */
+.right-sheet .front::after {
+    right: 0;
+    background: linear-gradient(
+        to left,
+        rgba(0,0,0,0.35),
+        rgba(0,0,0,0.15),
+        rgba(0,0,0,0)
+    );
 }
 
-input[type="file"] {
-    padding: 10px;
-    font-size: 16px;
+/* left page curling right (PREVIOUS) */
+.left-sheet .front::after {
+    left: 0;
+    background: linear-gradient(
+        to right,
+        rgba(0,0,0,0.35),
+        rgba(0,0,0,0.15),
+        rgba(0,0,0,0)
+    );
 }
 
-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
+/* show curl during drag */
+.sheet.dragging .front::after {
+    opacity: 1;
 }
 
-button:hover {
-    background-color: #45a049;
+/* ---------- DYNAMIC PAGE SHADOW ---------- */
+
+.sheet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
 }
 
-button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
+.right-sheet::before {
+    background: radial-gradient(
+        circle at left center,
+        rgba(0,0,0,0.35),
+        rgba(0,0,0,0.15),
+        rgba(0,0,0,0)
+    );
 }
 
-h2 {
-    color: #ff0000;
+.left-sheet::before {
+    background: radial-gradient(
+        circle at right center,
+        rgba(0,0,0,0.35),
+        rgba(0,0,0,0.15),
+        rgba(0,0,0,0)
+    );
+}
+
+.sheet.dragging::before {
+    opacity: 1;
+}
+.sheet::before {
+    opacity: calc(var(--shadow, 0) * 1);
 }

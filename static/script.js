@@ -1,100 +1,134 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const leftCanvas = document.getElementById("left-canvas");
-    const rightCanvas = document.getElementById("right-canvas");
-    const leftCtx = leftCanvas.getContext("2d");
-    const rightCtx = rightCanvas.getContext("2d");
+document.addEventListener("DOMContentLoaded", async () => {
 
-    const prevBtn = document.getElementById("prev");
-    const nextBtn = document.getElementById("next");
-    const pageInfo = document.getElementById("page-info");
-
-    const url = `/uploads/${PDF_FILE}`;
-
-    let pdfDoc = null;
-    let totalPages = 0;
-    let currentPage = 1; 
-    let isRendering = false;
-    const scale = 1.1;
+    const leftSheet  = document.getElementById("left-sheet");
+    const rightSheet = document.getElementById("right-sheet");
     const book = document.querySelector(".book");
 
-function flipBook() {
-    book.classList.toggle("flip");
-}
+    const lf = document.getElementById("left-front").getContext("2d");
+    const lb = document.getElementById("left-back").getContext("2d");
+    const rf = document.getElementById("right-front").getContext("2d");
+    const rb = document.getElementById("right-back").getContext("2d");
 
-    async function renderPage(pageNum, canvas, ctx) {
+    const url = `/uploads/${PDF_FILE}`;
+    const scale = 1.2;
+
+    let pdfDoc;
+    let totalPages;
+    let currentPage = 1;
+
+    let activeSheet = null;
+    let startX = 0;
+    let rotation = 0;
+    let dragging = false;
+
+    /* ---------- PDF RENDER ---------- */
+
+    async function render(pageNum, ctx, canvas) {
+        if (pageNum < 1 || pageNum > totalPages) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            return;
+        }
         const page = await pdfDoc.getPage(pageNum);
         const viewport = page.getViewport({ scale });
-
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-
-        await page.render({
-            canvasContext: ctx,
-            viewport: viewport
-        }).promise;
+        await page.render({ canvasContext: ctx, viewport }).promise;
     }
 
-    async function renderView() {
-        if (isRendering) return;
-        isRendering = true;
-
-        leftCanvas.classList.add("flip-out");
-        rightCanvas.classList.add("flip-out");
-
-        setTimeout(async () => {
-            leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
-            rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
-
-            if (currentPage === 1) {
-                await renderPage(1, leftCanvas, leftCtx);
-                rightCanvas.style.visibility = "hidden";
-                pageInfo.textContent = `Cover (Page 1 of ${totalPages})`;
-                prevBtn.disabled = true;
-            } else {
-                rightCanvas.style.visibility = "visible";
-
-                await renderPage(currentPage, leftCanvas, leftCtx);
-
-                if (currentPage + 1 <= totalPages) {
-                    await renderPage(currentPage + 1, rightCanvas, rightCtx);
-                }
-
-                pageInfo.textContent = `Pages ${currentPage}–${Math.min(currentPage + 1, totalPages)} of ${totalPages}`;
-                prevBtn.disabled = false;
-            }
-
-            nextBtn.disabled = currentPage >= totalPages;
-
-            leftCanvas.classList.remove("flip-out");
-            rightCanvas.classList.remove("flip-out");
-            leftCanvas.classList.add("flip-in");
-            rightCanvas.classList.add("flip-in");
-
-            isRendering = false;
-        }, 200);
+    async function loadPages() {
+        await render(currentPage, lf, document.getElementById("left-front"));
+        await render(currentPage + 1, rf, document.getElementById("right-front"));
+        await render(currentPage - 1, lb, document.getElementById("left-back"));
+        await render(currentPage + 2, rb, document.getElementById("right-back"));
     }
 
-    pdfjsLib.getDocument(url).promise.then(pdf => {
-        pdfDoc = pdf;
-        totalPages = pdf.numPages;
-        renderView();
-    });
+    /* ---------- DRAG CORE ---------- */
 
-    nextBtn.onclick = () => {
-        if (currentPage === 1) {
-            currentPage = 2;
-        } else if (currentPage + 2 <= totalPages) {
-            currentPage += 2;
-        }
-        renderView();
-    };
+    function pointerDown(x) {
+        dragging = true;
+        startX = x;
+        rotation = 0;
 
-    prevBtn.onclick = () => {
-        if (currentPage === 2) {
-            currentPage = 1;
-        } else if (currentPage > 2) {
-            currentPage -= 2;
+        activeSheet = (x > 400) ? rightSheet : leftSheet;
+        activeSheet.classList.add("dragging");
+    }
+
+    function pointerMove(x) {
+        if (!dragging) return;
+
+        const diff = x - startX;
+        const width = 400;
+        let progress = diff / width;
+        progress = Math.max(-1, Math.min(1, progress));
+
+        rotation = progress * 180;
+
+/* shadow intensity follows curl */
+const intensity = Math.min(Math.abs(rotation) / 180, 1);
+activeSheet.style.setProperty("--shadow", intensity);
+
+
+        if (activeSheet === rightSheet) {
+            activeSheet.style.transform = `rotateY(${rotation}deg)`;
+        } else {
+            activeSheet.style.transform = `rotateY(${rotation}deg)`;
         }
-        renderView();
-    };
+    }
+
+    async function pointerUp() {
+        if (!dragging) return;
+        dragging = false;
+
+        activeSheet.classList.remove("dragging");
+        activeSheet.style.transition = "transform 0.5s ease";
+
+        /* NEXT PAGE (right sheet) */
+        if (activeSheet === rightSheet && rotation < -90 && currentPage + 1 < totalPages) {
+            activeSheet.style.transform = "rotateY(-180deg)";
+            setTimeout(async () => {
+                currentPage += 2;
+                resetSheets();
+                await loadPages();
+            }, 300);
+        }
+        /* PREVIOUS PAGE (left sheet) */
+        else if (activeSheet === leftSheet && rotation > 90 && currentPage > 1) {
+            activeSheet.style.transform = "rotateY(180deg)";
+            setTimeout(async () => {
+                currentPage -= 2;
+                resetSheets();
+                await loadPages();
+            }, 300);
+        }
+        /* CANCEL */
+        else {
+            activeSheet.style.transform = "rotateY(0deg)";
+        }
+    }
+
+    function resetSheets() {
+        leftSheet.style.transition = "none";
+        rightSheet.style.transition = "none";
+        leftSheet.style.transform = "rotateY(0deg)";
+        rightSheet.style.transform = "rotateY(0deg)";
+        leftSheet.style.removeProperty("--shadow");
+        rightSheet.style.removeProperty("--shadow");
+
+    }
+
+    /* ---------- EVENTS ---------- */
+
+    book.addEventListener("touchstart", e => pointerDown(e.touches[0].clientX));
+    book.addEventListener("touchmove",  e => pointerMove(e.touches[0].clientX));
+    book.addEventListener("touchend",   pointerUp);
+
+    book.addEventListener("mousedown", e => pointerDown(e.clientX));
+    window.addEventListener("mousemove", e => pointerMove(e.clientX));
+    window.addEventListener("mouseup", pointerUp);
+
+    /* ---------- INIT ---------- */
+
+    pdfDoc = await pdfjsLib.getDocument(url).promise;
+    totalPages = pdfDoc.numPages;
+    await loadPages();
 });

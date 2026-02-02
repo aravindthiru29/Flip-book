@@ -1,28 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Flip Book Viewer</title>
+    <title>Flipbook</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-<h1>Flip Book Viewer</h1>
-
-<div class="controls">
-    <button id="prev">⬅ Prev</button>
-    <span id="page-info"></span>
-    <button id="next">Next ➡</button>
-</div>
+<h2>Flipbook</h2>
 
 <div class="book">
-    <div class="page left">
-        <canvas id="left-canvas"></canvas>
+
+    <!-- LEFT PAGE (for PREVIOUS) -->
+    <div class="sheet left-sheet" id="left-sheet">
+        <div class="front">
+            <canvas id="left-front"></canvas>
+        </div>
+        <div class="back">
+            <canvas id="left-back"></canvas>
+        </div>
+    </div>
+
+    <!-- RIGHT PAGE (for NEXT) -->
+    <div class="sheet right-sheet" id="right-sheet">
+        <div class="front">
+            <canvas id="right-front"></canvas>
+        </div>
+        <div class="back">
+            <canvas id="right-back"></canvas>
+        </div>
     </div>
 
     <div class="spine"></div>
-    <div class="page right">
-        <canvas id="right-canvas"></canvas>
-    </div>
+</div>
+
+
+<div class="controls">
+    <button id="prev">Prev</button>
+    <button id="next">Next</button>
 </div>
 
 <script>

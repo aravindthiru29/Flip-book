@@ -22,16 +22,13 @@ def upload_pdf():
 
     return render_template("upload.html")
 
-
 @app.route("/view/<filename>")
 def view_pdf(filename):
     return render_template("view_pdf.html", filename=filename)
 
-
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
-
 
 if __name__ == "__main__":
     app.run(debug=True)
