@@ -9,35 +9,25 @@
 <h2>Flipbook</h2>
 
 <div class="book">
+  <div class="sheet left-sheet">
+    <div class="front"><canvas id="left-front"></canvas></div>
+    <div class="back"><canvas id="left-back"></canvas></div>
+  </div>
 
-    <!-- LEFT PAGE (for PREVIOUS) -->
-    <div class="sheet left-sheet" id="left-sheet">
-        <div class="front">
-            <canvas id="left-front"></canvas>
-        </div>
-        <div class="back">
-            <canvas id="left-back"></canvas>
-        </div>
-    </div>
+  <div class="sheet right-sheet">
+    <div class="front"><canvas id="right-front"></canvas></div>
+    <div class="back"><canvas id="right-back"></canvas></div>
+  </div>
 
-    <!-- RIGHT PAGE (for NEXT) -->
-    <div class="sheet right-sheet" id="right-sheet">
-        <div class="front">
-            <canvas id="right-front"></canvas>
-        </div>
-        <div class="back">
-            <canvas id="right-back"></canvas>
-        </div>
-    </div>
-
-    <div class="spine"></div>
+  <div class="spine"></div>
 </div>
-
 
 <div class="controls">
-    <button id="prev">Prev</button>
-    <button id="next">Next</button>
+  <button id="prevBtn">◀ Prev</button>
+  <span id="pageIndicator">Page 1</span>
+  <button id="nextBtn">Next ▶</button>
 </div>
+
 
 <script>
     const PDF_FILE = "{{ filename }}";

@@ -1,8 +1,10 @@
 body {
-    background: #f4f4f4;
+    background: radial-gradient(circle at top, #fafafa, #eaeaea);
     font-family: Arial, sans-serif;
     text-align: center;
 }
+
+/* ================= BOOK ================= */
 
 .book {
     position: relative;
@@ -10,59 +12,86 @@ body {
     height: 560px;
     margin: 40px auto;
     perspective: 2200px;
+    transform-style: preserve-3d;
+    border-radius: 10px;
+    background: #ddd;
+    box-shadow: 0 30px 60px rgba(0,0,0,.25);
+    overflow: hidden;
     touch-action: none;
+    cursor: grab;
 }
 
-/* shared page */
+.book:active { cursor: grabbing; }
+
+/* ================= SHEETS ================= */
+
 .sheet {
     position: absolute;
     width: 400px;
     height: 100%;
-    background: white;
+    background: linear-gradient(#fff, #f7f7f7);
     transform-style: preserve-3d;
-    transition: transform 0.5s ease;
-}
-
-/* RIGHT PAGE → NEXT */
-.right-sheet {
-    left: 400px;
-    transform-origin: left center;
-}
-
-/* LEFT PAGE → PREVIOUS */
-.left-sheet {
-    left: 0;
-    transform-origin: right center;
-}
-
-/* faces */
-.sheet .front{
-    position: absolute;
-    width: 100%;
-    height: 100%;
     backface-visibility: hidden;
-    background: white;
+    z-index: 1;
 }
+
+.sheet.active { z-index: 10; }
+.sheet.settle { transition: transform .25s ease; }
+
+/* stack thickness */
+.book::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: calc(var(--stack, 0) * 1px);
+    background: linear-gradient(to right, rgba(0,0,0,.25), transparent);
+    pointer-events: none;
+}
+
+/* left / right */
+.left-sheet  { left: 0;   transform-origin: right center; }
+.right-sheet { left: 400px; transform-origin: left center; }
+
+/* ================= FACES ================= */
+
+.sheet .front,
 .sheet .back {
     position: absolute;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     backface-visibility: hidden;
-    background: white;
 }
 
-.sheet .back {
-    transform: rotateY(-180deg);
+.sheet .back { transform: rotateY(180deg); }
+
+/* paper grain */
+.sheet .front::before,
+.sheet .back::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,.015),
+        rgba(0,0,0,.015) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    pointer-events: none;
 }
 
-/* spine */
+/* ================= SPINE ================= */
+
 .spine {
     position: absolute;
     left: 398px;
     width: 4px;
     height: 100%;
-    background: #bbb;
+    background: linear-gradient(to right,#999,#ccc,#090808);
 }
+
+/* ================= CANVAS ================= */
 
 canvas {
     width: 100%;
@@ -70,89 +99,84 @@ canvas {
     display: block;
 }
 
-/* dragging disables animation */
-.sheet.dragging {
-    transition: none !important;
-}
-.sheet.next {
-    transform: rotateY(-180deg);
+/* ================= SHADOW + CURL ================= */
+
+.sheet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: var(--shadow,0);
+    pointer-events: none;
 }
 
-/* ---------- EDGE CURL ILLUSION ---------- */
+.right-sheet::before {
+    background: radial-gradient(circle at left, rgba(0,0,0,.35), transparent);
+}
+.left-sheet::before {
+    background: radial-gradient(circle at right, rgba(0,0,0,.35), transparent);
+}
 
-/* front face curl */
 .sheet .front::after {
     content: "";
     position: absolute;
     top: 0;
     bottom: 0;
     width: 40px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    opacity: var(--shadow,0);
 }
 
-/* right page curling left (NEXT) */
 .right-sheet .front::after {
     right: 0;
-    background: linear-gradient(
-        to left,
-        rgba(0,0,0,0.35),
-        rgba(0,0,0,0.15),
-        rgba(0,0,0,0)
-    );
+    background: linear-gradient(to left, rgba(0,0,0,.35), transparent);
 }
-
-/* left page curling right (PREVIOUS) */
 .left-sheet .front::after {
     left: 0;
-    background: linear-gradient(
-        to right,
-        rgba(0,0,0,0.35),
-        rgba(0,0,0,0.15),
-        rgba(0,0,0,0)
-    );
+    background: linear-gradient(to right, rgba(0,0,0,.35), transparent);
 }
 
-/* show curl during drag */
-.sheet.dragging .front::after {
-    opacity: 1;
-}
-
-/* ---------- DYNAMIC PAGE SHADOW ---------- */
-
-.sheet::before {
+/* page thickness */
+.sheet::after {
     content: "";
     position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.15s ease;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: linear-gradient(to right, rgba(0,0,0,.35), rgba(0,0,0,.05));
+    opacity: var(--shadow,0);
+}
+.right-sheet::after { left: 0; }
+.left-sheet::after  { right: 0; transform: scaleX(-1); }
+
+/* ================= CONTROLS ================= */
+
+.controls {
+    margin-top: 22px;
+    padding: 10px 18px;
+    display: inline-flex;
+    gap: 16px;
+    background: rgba(255,255,255,.85);
+    border-radius: 999px;
+    box-shadow: 0 6px 14px rgba(0,0,0,.15);
 }
 
-.right-sheet::before {
-    background: radial-gradient(
-        circle at left center,
-        rgba(0,0,0,0.35),
-        rgba(0,0,0,0.15),
-        rgba(0,0,0,0)
-    );
+.controls button {
+    padding: 6px 16px;
+    font-weight: 600;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,.15);
+    background: linear-gradient(#fff,#eaeaea);
+    cursor: pointer;
 }
 
-.left-sheet::before {
-    background: radial-gradient(
-        circle at right center,
-        rgba(0,0,0,0.35),
-        rgba(0,0,0,0.15),
-        rgba(0,0,0,0)
-    );
+.controls button:disabled {
+    opacity: .4;
+    cursor: not-allowed;
 }
 
-.sheet.dragging::before {
-    opacity: 1;
+#pageIndicator {
+    background: #111;
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
 }
-
-.sheet::before {
-    opacity: calc(var(--shadow, 0) * 1);
-}
-
