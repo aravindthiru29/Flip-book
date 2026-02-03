@@ -36,7 +36,13 @@ body {
 }
 
 /* faces */
-.sheet .front,
+.sheet .front{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    background: white;
+}
 .sheet .back {
     position: absolute;
     width: 100%;
@@ -46,7 +52,7 @@ body {
 }
 
 .sheet .back {
-    transform: rotateY(180deg);
+    transform: rotateY(-180deg);
 }
 
 /* spine */
@@ -145,6 +151,8 @@ canvas {
 .sheet.dragging::before {
     opacity: 1;
 }
+
 .sheet::before {
     opacity: calc(var(--shadow, 0) * 1);
 }
+
