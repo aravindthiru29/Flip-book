@@ -1,5 +1,5 @@
 body {
-    background: radial-gradient(circle at top, #fafafa, #eaeaea);
+    background: radial-gradient(circle at top, #e0e0e0, #c0c0c0); /* Updated background */
     font-family: Arial, sans-serif;
     text-align: center;
 }
@@ -14,8 +14,9 @@ body {
     perspective: 2200px;
     transform-style: preserve-3d;
     border-radius: 10px;
-    background: #ddd;
-    box-shadow: 0 30px 60px rgba(0,0,0,.25);
+    background: linear-gradient(to bottom right, #f0f0f0, #ffffff); /* Softer gradient */
+    border: 2px solid #bbb; /* Softer border color */
+    box-shadow: 0 30px 60px rgba(0, 0, 0, .15); /* Softer shadow */
     overflow: hidden;
     touch-action: none;
     cursor: grab;
@@ -29,14 +30,15 @@ body {
     position: absolute;
     width: 400px;
     height: 100%;
-    background: linear-gradient(#fff, #f7f7f7);
+    background: linear-gradient(#ffffff, #f9f9f9); /* Softer sheet background */
     transform-style: preserve-3d;
+    transition: transform 0.15s linear;
     backface-visibility: hidden;
     z-index: 1;
 }
 
 .sheet.active { z-index: 10; }
-.sheet.settle { transition: transform .25s ease; }
+.sheet.settle { transition: transform 0.55s cubic-bezier(0.25, 1, 0.3, 1); }
 
 /* stack thickness */
 .book::after {
@@ -154,8 +156,9 @@ canvas {
     padding: 10px 18px;
     display: inline-flex;
     gap: 16px;
-    background: rgba(255,255,255,.85);
+    background: rgba(255, 255, 255, .95); /* More opaque for better visibility */
     border-radius: 999px;
+    border: 1px solid #ccc; /* Softer border */
     box-shadow: 0 6px 14px rgba(0,0,0,.15);
 }
 
@@ -164,7 +167,7 @@ canvas {
     font-weight: 600;
     border-radius: 999px;
     border: 1px solid rgba(0,0,0,.15);
-    background: linear-gradient(#fff,#eaeaea);
+    background: linear-gradient(#f7f7f7, #eaeaea); 
     cursor: pointer;
 }
 
@@ -174,8 +177,8 @@ canvas {
 }
 
 #pageIndicator {
-    background: #111;
-    color: #fff;
+    background: #222; 
+    color: #f0f0f0; 
     padding: 6px 14px;
     border-radius: 999px;
     font-size: 13px;

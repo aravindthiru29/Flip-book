@@ -8,18 +8,14 @@ app = Flask(__name__)
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 raw_db_url = os.getenv("DATABASE_URL")
-
 if raw_db_url:
     if raw_db_url.startswith("postgres://"):
         raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
     app.config["SQLALCHEMY_DATABASE_URI"] = raw_db_url
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///contacts.db"
-
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
 db = SQLAlchemy(app)
 
 class PDFFile(db.Model):
