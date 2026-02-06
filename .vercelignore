@@ -1,0 +1,11 @@
+.git
+.gitignore
+README.md
+DEPLOYMENT.md
+instance/
+uploads/
+*.pyc
+__pycache__
+.pytest_cache
+.env
+.env.local

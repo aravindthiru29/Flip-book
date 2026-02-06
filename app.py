@@ -11,11 +11,37 @@ app = Flask(__name__)
 
 # Basic Config
 BASE_DIR = Path(__file__).resolve().parent
-app.config['SECRET_KEY'] = 'dev-key-flipbook-123'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flipbook.db'
-app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
-app.config['PAGES_FOLDER'] = os.path.join(BASE_DIR, 'static', 'pages')
+ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key-flipbook-123')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB limit
+
+# Database Configuration for Vercel/Production
+if ENVIRONMENT == 'production':
+    # On Vercel, use a cloud database URL (PostgreSQL, MySQL, etc.)
+    # Set DATABASE_URL environment variable in Vercel
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        # Handle postgresql:// vs postgresql+psycopg2://
+        if database_url.startswith('postgresql://'):
+            database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    else:
+        # Fallback to SQLite (not recommended for production)
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flipbook.db'
+else:
+    # Development: Use SQLite
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flipbook.db'
+
+# File storage - Use /tmp on Vercel (temporary but works within a request)
+if ENVIRONMENT == 'production':
+    app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
+    app.config['PAGES_FOLDER'] = '/tmp/pages'
+else:
+    app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
+    app.config['PAGES_FOLDER'] = os.path.join(BASE_DIR, 'static', 'pages')
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
