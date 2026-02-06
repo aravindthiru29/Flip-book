@@ -15,7 +15,7 @@ app.config['SECRET_KEY'] = 'dev-key-flipbook-123'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flipbook.db'
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
 app.config['PAGES_FOLDER'] = os.path.join(BASE_DIR, 'static', 'pages')
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
+app.config['MAX_CONTENT_LENGTH'] = 50 * 512 * 512  # 50MB limit
 
 db = SQLAlchemy(app)
 
