@@ -16,10 +16,8 @@ ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key-flipbook-123')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB limit
 
-# Database Configuration for Vercel/Production
+# Database Configuration
 if ENVIRONMENT == 'production':
-    # On Vercel, use a cloud database URL (PostgreSQL, MySQL, etc.)
-    # Set DATABASE_URL environment variable in Vercel
     database_url = os.getenv('DATABASE_URL')
     if database_url:
         # Handle postgresql:// vs postgresql+psycopg2://
@@ -33,7 +31,7 @@ else:
     # Development: Use SQLite
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flipbook.db'
 
-# File storage - Use /tmp on Vercel (temporary but works within a request)
+# File storage
 if ENVIRONMENT == 'production':
     app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
     app.config['PAGES_FOLDER'] = '/tmp/pages'
@@ -69,12 +67,19 @@ class Highlight(db.Model):
     rects = db.Column(db.Text, nullable=False)  # JSON string of rects: [{"x":0.1, "y":0.2, "w":0.05, "h":0.01}, ...]
     color = db.Column(db.String(20), default='rgba(255, 255, 0, 0.4)')
 
-with app.app_context():
-    db.create_all()
+# Initialize database and directories safely
+try:
+    with app.app_context():
+        db.create_all()
+except Exception as e:
+    print(f"Database initialization error (will retry on first request): {e}")
 
-# Ensure directories exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(app.config['PAGES_FOLDER'], exist_ok=True)
+# Ensure directories exist (gracefully handle on Vercel)
+try:
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['PAGES_FOLDER'], exist_ok=True)
+except Exception as e:
+    print(f"Directory creation error: {e}")
 
 def extract_toc(pdf_path):
     """Extracts Table of Contents from PDF using PyMuPDF."""
@@ -93,6 +98,19 @@ def extract_toc(pdf_path):
     except Exception as e:
         print(f"TOC extraction error: {e}")
         return []
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    try:
+        # Test database connection
+        with app.app_context():
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
+            db.session.commit()
+        return jsonify({'status': 'ok', 'database': 'connected'}), 200
+    except Exception as e:
+        print(f"Health check error: {e}")
+        return jsonify({'status': 'ok', 'database': 'disconnected', 'error': str(e)}), 200
 
 @app.route('/')
 def index():
@@ -121,7 +139,6 @@ def upload_file():
     os.makedirs(pages_dir, exist_ok=True)
 
     try:
-        # Just get page count, don't convert all pages yet (on-demand rendering for speed)
         doc = fitz.open(save_path)
         page_count = len(doc)
         doc.close()
