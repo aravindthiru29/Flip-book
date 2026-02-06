@@ -15,7 +15,7 @@ app.config['SECRET_KEY'] = 'dev-key-flipbook-123'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flipbook.db'
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
 app.config['PAGES_FOLDER'] = os.path.join(BASE_DIR, 'static', 'pages')
-app.config['MAX_CONTENT_LENGTH'] = 50 * 512 * 512  # 50MB limit
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB limit
 
 db = SQLAlchemy(app)
 
@@ -95,14 +95,9 @@ def upload_file():
     os.makedirs(pages_dir, exist_ok=True)
 
     try:
-        # Convert PDF to Images using PyMuPDF (much faster and no Poppler dependency)
+        # Just get page count, don't convert all pages yet (on-demand rendering for speed)
         doc = fitz.open(save_path)
         page_count = len(doc)
-        
-        for i in range(page_count):
-            page = doc.load_page(i)
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Scale up for better quality
-            pix.save(os.path.join(pages_dir, f"page_{i+1}.jpg"))
         doc.close()
 
         # Save to DB
@@ -128,9 +123,40 @@ def view_flipbook(book_id):
     toc = extract_toc(pdf_path)
     
     # List of page image URLs
-    pages = [url_for('static', filename=f'pages/{book_id}/page_{i+1}.jpg') for i in range(book.page_count)]
+    pages = [url_for('serve_page', book_id=book_id, page_num=i+1) for i in range(book.page_count)]
     
     return render_template('flipbook.html', book=book, pages=pages, toc=toc)
+
+@app.route('/page/<book_id>/<int:page_num>.jpg')
+def serve_page(book_id, page_num):
+    book = Book.query.get_or_404(book_id)
+    pages_dir = os.path.join(app.config['PAGES_FOLDER'], book_id)
+    page_path = os.path.join(pages_dir, f"page_{page_num}.jpg")
+    
+    # Check if page is already rendered
+    if os.path.exists(page_path):
+        return send_from_directory(pages_dir, f"page_{page_num}.jpg")
+    
+    # Not rendered, do it now on-demand
+    try:
+        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], book.filename)
+        doc = fitz.open(pdf_path)
+        
+        if page_num > len(doc) or page_num < 1:
+            doc.close()
+            return "Page out of range", 400
+            
+        page = doc.load_page(page_num - 1)
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        
+        os.makedirs(pages_dir, exist_ok=True)
+        pix.save(page_path)
+        doc.close()
+        
+        return send_from_directory(pages_dir, f"page_{page_num}.jpg")
+    except Exception as e:
+        print(f"Error rendering page: {e}")
+        return str(e), 500
 
 @app.route('/download/<book_id>')
 def download_pdf(book_id):
