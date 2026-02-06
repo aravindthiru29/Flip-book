@@ -1,16 +1,160 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Flip Book</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlipBook - Upload PDF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .drag-active { border-color: #3b82f6; background-color: #eff6ff; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); }
+    </style>
 </head>
-<body>
-    <h2>Upload PDF</h2>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="pdf" accept="application/pdf" required>
-        <br><br>
-        <button type="submit">submit</button>
-    </form>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-xl w-full">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-slate-900 mb-2">Interactive FlipBook</h1>
+            <p class="text-slate-500">Transform your static PDFs into realistic, interactive digital books.</p>
+        </div>
+
+        <div id="drop-zone" class="glass rounded-3xl p-12 text-center border-2 border-dashed border-slate-300 transition-all duration-300 hover:border-blue-400 group cursor-pointer">
+            <input type="file" id="file-input" class="hidden" accept=".pdf">
+            
+            <div class="mb-4">
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-slate-800">Choose PDF or drag here</h3>
+                <p class="text-slate-400 text-sm mt-1">Maximum file size: 100MB</p>
+            </div>
+            
+            <button onclick="document.getElementById('file-input').click()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-xl transition-colors shadow-lg shadow-blue-200">
+                Select File
+            </button>
+        </div>
+
+        <div id="upload-status" class="hidden mt-8">
+            <div class="glass rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span id="file-name" class="text-sm font-medium text-slate-700 truncate max-w-[200px]">document.pdf</span>
+                    <span id="progress-text" class="text-sm font-semibold text-blue-600">0%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2">
+                    <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="status-message" class="text-xs text-slate-500 mt-3 flex items-center">
+                    <svg class="animate-spin -ml-1 mr-2 h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Uploading and converting pages...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadStatus = document.getElementById('upload-status');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const fileNameLabel = document.getElementById('file-name');
+        const statusMessage = document.getElementById('status-message');
+
+        // Prevent defaults for drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-active'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-active'), false);
+        });
+
+        dropZone.addEventListener('drop', e => {
+            const files = e.dataTransfer.files;
+            if (files.length) handleUpload(files[0]);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) handleUpload(fileInput.files[0]);
+        });
+
+        function handleUpload(file) {
+            if (!file.name.toLowerCase().endswith('.pdf')) {
+                alert('Please upload a PDF file');
+                return;
+            }
+
+            fileNameLabel.textContent = file.name;
+            uploadStatus.classList.remove('hidden');
+            dropZone.classList.add('pointer-events-none', 'opacity-50');
+
+            const formData = new FormData();
+            formData.append('pdf', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 90); // Save 10% for processing
+                    progressBar.style.width = percent + '%';
+                    progressText.textContent = percent + '%';
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    progressBar.style.width = '100%';
+                    progressText.textContent = '100%';
+                    statusMessage.textContent = 'Success! Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = response.redirect;
+                    }, 1000);
+                } else {
+                    const err = JSON.parse(xhr.responseText);
+                    alert(err.error || 'Upload failed');
+                    resetUpload();
+                }
+            };
+
+            xhr.onerror = () => {
+                alert('An error occurred during upload.');
+                resetUpload();
+            };
+
+            xhr.send(formData);
+        }
+
+        function resetUpload() {
+            uploadStatus.classList.add('hidden');
+            dropZone.classList.remove('pointer-events-none', 'opacity-50');
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+        }
+
+        // Polyfill for older browsers endsWith
+        if (!String.prototype.endswith) {
+            String.prototype.endswith = function(search, this_len) {
+                if (this_len === undefined || this_len > this.length) {
+                    this_len = this.length;
+                }
+                return this.substring(this_len - search.length, this_len) === search;
+            };
+        }
+    </script>
 </body>
 </html>

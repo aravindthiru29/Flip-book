@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ book.title }} - FlipBook</title>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-migrate-3.4.1.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/3/turn.min.js"></script>
+
+    <style>
+        #flipbook {
+            transition: transform 0.2s ease-out;
+            transform-origin: center center;
+        }
+
+        .flipbook-wrapper {
+            margin: auto;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 overflow-hidden">
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()"
+        class="fixed inset-0 bg-black/30 backdrop-blur-sm z-[150] transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="fixed top-0 left-[-300px] w-[300px] h-full bg-white shadow-2xl z-[200] transition-all duration-300 flex flex-col">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-800">Contents</h2>
+            <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-50 rounded-lg text-slate-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4">
+            <!-- Navigation Tabs -->
+            <div class="flex gap-2 mb-6 px-1">
+                <button onclick="showSidebarTab('toc')" id="tab-toc"
+                    class="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-blue-50 text-blue-600 transition-all border border-blue-100">Outline</button>
+                <button onclick="showSidebarTab('notes')" id="tab-notes"
+                    class="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all border border-transparent">Notes</button>
+            </div>
+
+            <!-- TOC Tab -->
+            <div id="sidebar-toc" class="mb-8">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-3">Table of Contents
+                </h3>
+                <nav class="space-y-1">
+                    {% for item in toc %}
+                    <button onclick="goToPage('{{ item.page }}')"
+                        class="w-full text-left flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all group">
+                        <span
+                            class="w-6 h-6 flex items-center justify-center bg-slate-100 group-hover:bg-blue-100 text-[10px] font-bold rounded-md transition-colors">{{
+                            item.page }}</span>
+                        <span class="truncate">{{ item.title }}</span>
+                    </button>
+                    {% else %}
+                    <p class="text-xs text-slate-400 italic px-3">No outline found in PDF.</p>
+                    {% endfor %}
+                </nav>
+            </div>
+
+            <!-- Notes Tab -->
+            <div id="sidebar-notes" class="mb-8 hidden">
+                <div class="px-3">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Page Notes</h3>
+                        <button onclick="addNote()" class="text-blue-600 hover:text-blue-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="notes-list" class="space-y-3">
+                        <!-- Notes will be loaded here -->
+                        <p class="text-xs text-slate-400 italic">No notes yet.</p>
+                    </div>
+
+                    <div id="note-editor" class="mt-6 hidden">
+                        <textarea id="note-content"
+                            class="w-full p-3 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                            rows="4" placeholder="Type your note..."></textarea>
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="saveNote()"
+                                class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all">Save</button>
+                            <button onclick="cancelNote()"
+                                class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-3">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Settings</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-slate-600">Double Page View</span>
+                        <div id="display-toggle" onclick="toggleDisplayMode()"
+                            class="w-10 h-5 bg-blue-600 rounded-full cursor-pointer relative transition-colors duration-200">
+                            <div
+                                class="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-all duration-200">
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-slate-100 bg-slate-50">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-blue-200">
+                    FB</div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-900">FlipBook Pro</p>
+                    <p class="text-[10px] text-slate-500">v1.2.0 Active</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <main class="relative h-screen flex flex-col">
+        <!-- Top Toolbar -->
+        <nav class="h-16 flex items-center justify-between px-6 z-50">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()"
+                    class="p-2.5 bg-white shadow-sm border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <div class="px-4 py-2 bg-white/50 backdrop-blur-md rounded-xl border border-white/50 shadow-sm">
+                    <h1 class="text-xs font-bold text-slate-800 tracking-tight truncate max-w-[200px]">{{ book.title }}
+                    </h1>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div
+                    class="flex items-center bg-white/80 backdrop-blur-md border border-slate-200 rounded-xl p-1 shadow-sm">
+                    <button id="btn-highlighter" onclick="toggleHighlighter()"
+                        class="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-all title='Highlighter'">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                            </path>
+                        </svg>
+                    </button>
+                    <button onclick="showSidebarTab('notes'); if(!$('#sidebar').hasClass('open')) toggleSidebar();"
+                        class="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-all title='Notes'">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+
+                <a href="{{ url_for('download_pdf', book_id=book.id) }}"
+                    class="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download
+                </a>
+            </div>
+        </nav>
+
+        <!-- Flipbook Container -->
+        <div id="viewport" class="flex-1">
+            <div id="flipbook" data-book-id="{{ book.id }}" data-page-count="{{ book.page_count }}">
+                {% for page_url in pages %}
+                <div class="page shadow-2xl relative"
+                    style="background: white; background-image: url('{{ page_url }}'); background-size: cover; background-position: center;">
+                    <div class="highlight-layer" data-page="{{ loop.index }}"></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="h-20 flex items-center justify-center px-6 bg-transparent pointer-events-none mb-4">
+            <div
+                class="flex items-center gap-6 bg-white/70 backdrop-blur-xl border border-white p-2 rounded-3xl shadow-2xl pointer-events-auto">
+                <div class="flex items-center gap-1 bg-slate-100/50 p-1 rounded-2xl">
+                    <button onclick="prevPage()" class="p-2 hover:bg-white rounded-xl text-slate-600 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div
+                        class="px-4 text-[11px] font-bold text-slate-700 min-w-[100px] text-center uppercase tracking-widest">
+                        Page <span id="page-display">1 of {{ book.page_count }}</span>
+                    </div>
+                    <button onclick="nextPage()" class="p-2 hover:bg-white rounded-xl text-slate-600 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 border-l border-slate-200 pl-4 pr-1">
+                    <button onclick="zoomOut()" class="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path>
+                        </svg>
+                    </button>
+                    <button onclick="zoomIn()" class="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+                        </svg>
+                    </button>
+                    <button onclick="toggleFullscreen()"
+                        class="ml-2 w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-black transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+
+    <script src="{{ url_for('static', filename='js/flipbook.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+            const pageCount = parseInt($('#flipbook').data('page-count')) || 0;
+            initFlipbook(pageCount);
+        });
+    </script>
+</body>
+
+</html>
